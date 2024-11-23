@@ -98,15 +98,30 @@ function ParticipantView(props) {
   );
 }
 
-function Controls() {
-  const { leave, toggleMic, enableWebcam, disableWebcam } = useMeeting();
-  const [facingMode, setFacingMode] = useState("user");
+function Controls({ setFacingMode, facingMode }) {
+  // const mMeetingRef = useRef();
 
-  const toggleCam = useCallback(async () => {
+  const { leave, toggleMic, changeWebcam, disableWebcam, enableWebcam } =
+    useMeeting();
+
+  // const mMeeting = useMeeting({});
+
+  // useEffect(() => {
+  //   mMeetingRef.current = mMeeting;
+  // }, [mMeeting]);
+
+  const toggleCam = async () => {
     try {
       disableWebcam();
-      const track = await createCameraVideoTrack({ facingMode });
+      let willbeFacingMode = facingMode === "user" ? "environment" : "user";
+      console.log("Fetching facing mode", { willbeFacingMode, facingMode });
+
+      const track = await createCameraVideoTrack({
+        facingMode: willbeFacingMode,
+      });
+
       if (track) {
+        console.log("Setting Track....", track);
         enableWebcam(track);
         setFacingMode((prevMode) =>
           prevMode === "user" ? "environment" : "user"
@@ -117,12 +132,12 @@ function Controls() {
     } catch (err) {
       console.error("Something went wrong while getting camera track", err);
     }
-  });
+  };
 
   return (
     <div>
-      <button onClick={() => leave()}>Leave</button>
-      <button onClick={() => toggleMic()}>toggleMic</button>
+      {/* <button onClick={() => leave()}>Leave</button> */}
+      {/* <button onClick={() => toggleMic()}>toggleMic</button> */}
       <button onClick={() => toggleCam()}>toggleWebcam</button>
     </div>
   );
@@ -149,7 +164,10 @@ function MeetingView(props) {
       <h3>Meeting Id: {props.meetingId}</h3>
       {joined && joined == "JOINED" ? (
         <div>
-          <Controls />
+          <Controls
+            setFacingMode={props.setFacingMode}
+            facingMode={props.facingMode}
+          />
           {[...participants.keys()].map((participantId) => (
             <ParticipantView
               participantId={participantId}
@@ -168,6 +186,8 @@ function MeetingView(props) {
 
 function App() {
   const [meetingId, setMeetingId] = useState(null);
+  // const [track, setTrack] = useState(null);
+  const [facingMode, setFacingMode] = useState("user");
 
   const getMeetingAndToken = async (id) => {
     const meetingId =
@@ -178,6 +198,18 @@ function App() {
   const onMeetingLeave = () => {
     setMeetingId(null);
   };
+
+  // useEffect(() => {
+  //   async function fetchTrack() {
+  //     const track = await createCameraVideoTrack({ facingMode: "user" });
+  //     console.log("Setting Track.... in app", track);
+  //     setTrack(track);
+  //     setFacingMode("user");
+  //   }
+  //   fetchTrack();
+  // }, []);
+
+  console.log("facingMode", facingMode);
 
   return authToken && meetingId ? (
     <MeetingProvider
@@ -191,7 +223,12 @@ function App() {
     >
       <MeetingConsumer>
         {() => (
-          <MeetingView meetingId={meetingId} onMeetingLeave={onMeetingLeave} />
+          <MeetingView
+            meetingId={meetingId}
+            onMeetingLeave={onMeetingLeave}
+            setFacingMode={setFacingMode}
+            facingMode={facingMode}
+          />
         )}
       </MeetingConsumer>
     </MeetingProvider>
